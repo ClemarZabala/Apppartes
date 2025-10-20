@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Partes Diarios</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4a90e2">
+<link rel="icon" href="icon-192.png">
+
+</head>
+<body>
+  <div class="container">
+
+    <!-- LOGIN -->
+    <section id="login-section">
+      <h2>Ingreso de Usuario</h2>
+      <label for="usuario">Usuario:</label>
+      <select id="usuario">
+        <option value="">-- Elegí tu nombre --</option>
+        <option value="admin">Administrador</option>
+        <option value="Acevedo Nelson">Acevedo Nelson</option>
+        <option value="Arias Federico">Arias Federico</option>
+        <option value="Rodriguez Gabriel">Rodriguez Gabriel</option>
+        <option value="Viñas Gabriel">Viñas Gabriel</option>
+      </select>
+
+      <label for="legajo">Número de Legajo:</label>
+      <input type="password" id="legajo" placeholder="Ingresá tu legajo">
+
+      <button id="btnLogin">Ingresar</button>
+      <p id="errorLogin" class="error"></p>
+    </section>
+
+    <!-- FORMULARIO DE CARGA -->
+    <section id="form-section" class="hidden">
+      <header>
+        <h2>Parte Diario</h2>
+        <p id="userActive"></p>
+      </header>
+
+      <label for="fecha">Fecha del parte:</label>
+      <input type="date" id="fecha">
+
+      <label for="interno">Interno del equipo:</label>
+      <select id="interno">
+        <option value="">-- Seleccioná un interno --</option>
+      </select>
+
+      <label for="final">Horas / Km finales:</label>
+      <input type="text" id="final" placeholder="Ej: 245 hs o 85630 km">
+
+      <label>¿Cargó combustible?</label>
+      <select id="cargoCombustible">
+        <option value="no">No</option>
+        <option value="si">Sí</option>
+      </select>
+
+      <div id="datosCombustible" class="hidden">
+        <label for="litros">Litros cargados:</label>
+        <input type="number" id="litros" placeholder="Ej: 100">
+
+        <label for="kmCarga">Km al momento de la carga:</label>
+        <input type="number" id="kmCarga" placeholder="Ej: 85600">
+      </div>
+
+      <label for="novedades">Novedades:</label>
+      <textarea id="novedades" rows="3" placeholder="Describí novedades o comentarios"></textarea>
+
+      <button id="btnGuardar">Guardar parte</button>
+      <button id="btnSalir">Salir</button>
+
+      <div id="ultimoParte" class="ultimo-parte hidden">
+        <h3>Último parte de este interno</h3>
+        <p><strong>Fecha:</strong> <span id="uFecha"></span></p>
+        <p><strong>Final:</strong> <span id="uFinal"></span></p>
+        <p><strong>Combustible:</strong> <span id="uCombustible"></span></p>
+        <p><strong>Novedades:</strong> <span id="uNovedades"></span></p>
+      </div>
+
+      <p id="msgGuardado" class="success"></p>
+    </section>
+
+    <!-- PANEL ADMIN -->
+    <section id="admin-section" class="hidden">
+      <header>
+        <h2>Resumen General de Partes</h2>
+        <div class="admin-actions">
+          <input type="text" id="filtro" placeholder="Filtrar por usuario, interno, fecha, novedad...">
+          <button id="btnExportar">Exportar CSV</button>
+        </div>
+      </header>
+      <table>
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Fecha</th>
+            <th>Interno</th>
+            <th>Final</th>
+            <th>Combustible</th>
+            <th>Novedades</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaPartes"></tbody>
+      </table>
+      <button id="btnSalirAdmin">Cerrar sesión</button>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
