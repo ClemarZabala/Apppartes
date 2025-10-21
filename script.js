@@ -10,12 +10,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_AUTH_DOMAIN",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_STORAGE_BUCKET",
-  messagingSenderId: "TU_MESSAGING_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyDz-koArBKFUb18f677L6161VqKQ1ZdVvo",
+  authDomain: "control-partes.firebaseapp.com",
+  projectId: "control-partes",
+  storageBucket: "control-partes.firebasestorage.app",
+  messagingSenderId: "408084645027",
+  appId: "1:408084645027:web:926ecefaba0dc9643aab16"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -175,7 +175,7 @@ async function mostrarResumen() {
 
   partes
     .filter(p => Object.values(p).some(v => v && v.toString().toLowerCase().includes(filtro)))
-    .forEach((p, i) => {
+    .forEach((p) => {
       const fila = document.createElement("tr");
       fila.innerHTML = `
         <td>${p.usuario}</td>
@@ -197,6 +197,7 @@ async function eliminarParte(id) {
   await deleteDoc(doc(db, "partesDiarios", id));
   mostrarResumen();
 }
+window.eliminarParte = eliminarParte; // 🔹 para que funcione el botón en el HTML
 
 // =================== EXPORTAR CSV ===================
 btnExportar.addEventListener("click", async () => {
@@ -226,4 +227,3 @@ if ("serviceWorker" in navigator) {
       .catch(err => console.log("Error al registrar Service Worker:", err));
   });
 }
-
