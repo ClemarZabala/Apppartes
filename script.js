@@ -1,5 +1,3 @@
-// script.js (reemplazar entero)
-
 // =================== FIREBASE ===================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -56,7 +54,8 @@ const cargoCombustible = document.getElementById("cargoCombustible");
 const datosCombustible = document.getElementById("datosCombustible");
 
 let usuarioActivo = null;
-let adminUnsubscribe = null; // para onSnapshot
+let adminUnsubscribe = null; 
+let partesGlobal = []; // 👈 guardamos todos los partes en memoria
 
 // ===== helpers =====
 function showMsg(el, text, color) { el.textContent = text; el.style.color = color || "#000"; }
@@ -77,7 +76,7 @@ btnLogin.addEventListener("click", () => {
   loginSection.classList.add("hidden");
   if (usuarioActivo === "admin") {
     adminSection.classList.remove("hidden");
-    iniciarListenerAdmin(); // listener en tiempo real
+    iniciarListenerAdmin(); 
   } else {
     formSection.classList.remove("hidden");
     userActive.textContent = `Usuario: ${usuarioActivo}`;
@@ -93,7 +92,7 @@ cargoCombustible.addEventListener("change", () => {
   datosCombustible.classList.toggle("hidden", cargoCombustible.value !== "si");
 });
 
-// =================== GUARDAR PARTE (con debug y bloqueo) ===================
+// =================== GUARDAR PARTE ===================
 btnGuardar.addEventListener("click", async () => {
   const fecha = document.getElementById("fecha").value;
   const interno = document.getElementById("interno").value;
@@ -102,8 +101,6 @@ btnGuardar.addEventListener("click", async () => {
   const litros = document.getElementById("litros").value;
   const kmCarga = document.getElementById("kmCarga").value;
   const cargo = cargoCombustible.value;
-
-  console.log("DEBUG -> intento guardar:", { usuarioActivo, fecha, interno, final, litros, kmCarga, cargo });
 
   if (!usuarioActivo) { showMsg(msgGuardado, "Iniciá sesión primero.", "#e74c3c"); return; }
   if (!fecha || !interno || !final) { showMsg(msgGuardado, "Completá fecha, interno y final.", "#e74c3c"); return; }
@@ -124,10 +121,9 @@ btnGuardar.addEventListener("click", async () => {
   setSavingState(true);
   try {
     const ref = await addDoc(collection(db, "partesDiarios"), parteObj);
-    console.log("DEBUG -> addDoc ok, id:", ref.id);
+    console.log("✅ Parte guardado, id:", ref.id);
     showMsg(msgGuardado, "Parte guardado correctamente ✅", "#27ae60");
 
-    // limpiar
     document.getElementById("final").value = "";
     document.getElementById("novedades").value = "";
     document.getElementById("litros").value = "";
@@ -135,33 +131,33 @@ btnGuardar.addEventListener("click", async () => {
     cargoCombustible.value = "no";
     datosCombustible.classList.add("hidden");
   } catch (err) {
-    console.error("DEBUG -> Error addDoc:", err);
+    console.error("❌ Error addDoc:", err);
     showMsg(msgGuardado, "Error al guardar el parte ❌ (ver consola)", "#e74c3c");
   } finally {
     setSavingState(false);
   }
 });
 
-// =================== LISTENER ADMIN (onSnapshot) ===================
+// =================== LISTENER ADMIN (onSnapshot fijo) ===================
 function iniciarListenerAdmin() {
-  // si ya hay, cancelar
   if (adminUnsubscribe) { adminUnsubscribe(); adminUnsubscribe = null; }
 
   try {
     const q = query(collection(db, "partesDiarios"), orderBy("timestamp", "desc"));
     adminUnsubscribe = onSnapshot(q, (snapshot) => {
-      const partes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      console.log("DEBUG -> onSnapshot partes:", partes.length);
-      renderTablaPartes(partes);
+      partesGlobal = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log("📡 Datos actualizados:", partesGlobal.length);
+      renderTablaPartes(partesGlobal);
     }, err => {
-      console.error("DEBUG -> onSnapshot error:", err);
+      console.error("❌ Error onSnapshot:", err);
       showMsg(msgGuardado, "Error al escuchar cambios (ver consola)", "#e74c3c");
     });
   } catch (err) {
-    console.error("DEBUG -> iniciarListenerAdmin error:", err);
+    console.error("❌ iniciarListenerAdmin error:", err);
   }
 }
 
+// =================== RENDER TABLA ===================
 function renderTablaPartes(partes) {
   const filtro = filtroInput.value?.toLowerCase() || "";
   tablaPartes.innerHTML = "";
@@ -184,21 +180,28 @@ function renderTablaPartes(partes) {
       tablaPartes.appendChild(fila);
     });
 }
-window.mostrarResumen = iniciarListenerAdmin;
 
-// =================== OTRAS FUNCIONES ===================
-filtroInput.addEventListener("input", () => { /* onSnapshot ya actualiza; esta fuerza re-render con filtro */ iniciarListenerAdmin(); });
+// =================== FILTRO ===================
+filtroInput.addEventListener("input", () => {
+  const filtro = filtroInput.value.toLowerCase();
+  const partesFiltradas = partesGlobal.filter(p =>
+    Object.values(p).some(v => v && v.toString().toLowerCase().includes(filtro))
+  );
+  renderTablaPartes(partesFiltradas);
+});
 
+// =================== ELIMINAR PARTE ===================
 async function eliminarParte(id) {
   try {
     await deleteDoc(doc(db, "partesDiarios", id));
-    console.log("DEBUG -> eliminado:", id);
+    console.log("🗑️ Eliminado:", id);
   } catch (err) {
-    console.error("DEBUG -> error eliminar:", err);
+    console.error("❌ Error eliminar:", err);
   }
 }
 window.eliminarParte = eliminarParte;
 
+// =================== EXPORTAR CSV ===================
 btnExportar.addEventListener("click", async () => {
   try {
     const snap = await getDocs(collection(db, "partesDiarios"));
@@ -210,14 +213,13 @@ btnExportar.addEventListener("click", async () => {
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "partes_diarios.csv"; a.click();
-  } catch (err) { console.error("DEBUG -> exportar error:", err); }
+  } catch (err) { console.error("❌ Exportar error:", err); }
 });
 
-// SERVICE WORKER registro (sin cambios funcionales)
+// =================== SERVICE WORKER ===================
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
-    .register("service-worker.js?v=2")
+    .register("service-worker.js?v=3")
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Error Service Worker:", err));
 }
-
