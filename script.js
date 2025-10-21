@@ -86,7 +86,7 @@ cargoCombustible.addEventListener("change", () => {
   datosCombustible.classList.toggle("hidden", cargoCombustible.value !== "si");
 });
 
-// =================== GUARDAR PARTE ===================
+// =================== GUARDAR PARTE EN FIRESTORE ===================
 btnGuardar.addEventListener("click", async () => {
   const fecha = document.getElementById("fecha").value;
   const interno = document.getElementById("interno").value;
@@ -110,17 +110,18 @@ btnGuardar.addEventListener("click", async () => {
   try {
     await addDoc(collection(db, "partesDiarios"), {
       usuario: usuarioActivo,
-      fecha,
-      interno,
-      final,
-      combustible,
-      novedades,
+      fecha: fecha,
+      interno: interno,
+      final: final,
+      combustible: combustible,
+      novedades: novedades,
       timestamp: new Date()
     });
 
     msgGuardado.textContent = "Parte guardado correctamente ✅";
     msgGuardado.style.color = "#27ae60";
 
+    // Limpiar campos
     document.getElementById("final").value = "";
     document.getElementById("novedades").value = "";
     document.getElementById("litros").value = "";
@@ -133,6 +134,7 @@ btnGuardar.addEventListener("click", async () => {
     msgGuardado.style.color = "#e74c3c";
   }
 });
+
 
 // =================== MOSTRAR ÚLTIMO PARTE ===================
 selectInterno.addEventListener("change", async () => {
@@ -216,4 +218,5 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Error Service Worker:", err));
 }
+
 
