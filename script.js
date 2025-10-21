@@ -117,13 +117,15 @@ btnGuardar.addEventListener("click", async () => {
 
   try {
     await addDoc(collection(db, "partesDiarios"), {
-      usuario: usuarioActivo,
-      fecha: Fecha,
-      interno: Interno,
-      final: Final,
-      combustible: Combustible,
-      novedades: Novedades,
-      timestamp: new Date()
+  usuario: usuarioActivo,
+  fecha: fecha,
+  interno: interno,
+  final: final,
+  combustible: combustible,
+  novedades: novedades,
+  timestamp: new Date()
+});
+
     });
 
     msgGuardado.textContent = "Parte guardado correctamente ✅";
@@ -227,4 +229,5 @@ if ("serviceWorker" in navigator) {
       .catch(err => console.log("Error al registrar Service Worker:", err));
   });
 }
+
 
