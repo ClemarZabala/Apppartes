@@ -1,3 +1,26 @@
+// =================== CONFIGURACIÓN DE FIREBASE ===================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH_DOMAIN",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_STORAGE_BUCKET",
+  messagingSenderId: "TU_MESSAGING_SENDER_ID",
+  appId: "TU_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 // =================== DATOS DE USUARIOS ===================
 const usuarios = [
   { nombre: "admin", legajo: "0000" },
@@ -67,17 +90,12 @@ internos.forEach(i => {
   selectInterno.appendChild(opt);
 });
 
-// Mostrar u ocultar campos de combustible
 cargoCombustible.addEventListener("change", () => {
-  if (cargoCombustible.value === "si") {
-    datosCombustible.classList.remove("hidden");
-  } else {
-    datosCombustible.classList.add("hidden");
-  }
+  datosCombustible.classList.toggle("hidden", cargoCombustible.value !== "si");
 });
 
-// =================== GUARDAR PARTE ===================
-btnGuardar.addEventListener("click", () => {
+// =================== GUARDAR PARTE EN FIRESTORE ===================
+btnGuardar.addEventListener("click", async () => {
   const fecha = document.getElementById("fecha").value;
   const interno = document.getElementById("interno").value;
   const final = document.getElementById("final").value;
@@ -97,26 +115,38 @@ btnGuardar.addEventListener("click", () => {
     combustible = `${litros} L - ${kmCarga} km`;
   }
 
-  const parte = { usuario: usuarioActivo, fecha, interno, final, combustible, novedades };
-  const partesGuardadas = JSON.parse(localStorage.getItem("partes")) || [];
-  partesGuardadas.push(parte);
-  localStorage.setItem("partes", JSON.stringify(partesGuardadas));
+  try {
+    await addDoc(collection(db, "partesDiarios"), {
+      usuario: usuarioActivo,
+      fecha,
+      interno,
+      final,
+      combustible,
+      novedades,
+      timestamp: new Date()
+    });
 
-  msgGuardado.textContent = "Parte guardado correctamente ✅";
-  msgGuardado.style.color = "#27ae60";
+    msgGuardado.textContent = "Parte guardado correctamente ✅";
+    msgGuardado.style.color = "#27ae60";
 
-  document.getElementById("final").value = "";
-  document.getElementById("novedades").value = "";
-  document.getElementById("litros").value = "";
-  document.getElementById("kmCarga").value = "";
-  cargoCombustible.value = "no";
-  datosCombustible.classList.add("hidden");
+    document.getElementById("final").value = "";
+    document.getElementById("novedades").value = "";
+    document.getElementById("litros").value = "";
+    document.getElementById("kmCarga").value = "";
+    cargoCombustible.value = "no";
+    datosCombustible.classList.add("hidden");
+  } catch (error) {
+    console.error("Error al guardar:", error);
+    msgGuardado.textContent = "Error al guardar el parte ❌";
+    msgGuardado.style.color = "#e74c3c";
+  }
 });
 
 // =================== MOSTRAR ÚLTIMO PARTE ===================
-selectInterno.addEventListener("change", () => {
+selectInterno.addEventListener("change", async () => {
   const interno = selectInterno.value;
-  const partes = JSON.parse(localStorage.getItem("partes")) || [];
+  const partesSnap = await getDocs(collection(db, "partesDiarios"));
+  const partes = partesSnap.docs.map(d => d.data());
   const ultimos = partes.filter(p => p.interno === interno);
 
   if (ultimos.length === 0) {
@@ -127,8 +157,8 @@ selectInterno.addEventListener("change", () => {
   const ultimo = ultimos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
   document.getElementById("uFecha").textContent = ultimo.fecha;
   document.getElementById("uFinal").textContent = ultimo.final;
-  document.getElementById("uCombustible").textContent = ultimo.combustible || "No cargó combustible";
-  document.getElementById("uNovedades").textContent = ultimo.novedades || "-";
+  document.getElementById("uCombustible").textContent = ultimo.combustible;
+  document.getElementById("uNovedades").textContent = ultimo.novedades;
   document.getElementById("ultimoParte").classList.remove("hidden");
 });
 
@@ -137,15 +167,14 @@ btnSalir.addEventListener("click", () => location.reload());
 btnSalirAdmin.addEventListener("click", () => location.reload());
 
 // =================== RESUMEN ADMIN ===================
-function mostrarResumen() {
-  const partes = JSON.parse(localStorage.getItem("partes")) || [];
+async function mostrarResumen() {
+  const partesSnap = await getDocs(collection(db, "partesDiarios"));
+  const partes = partesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   const filtro = filtroInput.value.toLowerCase();
   tablaPartes.innerHTML = "";
 
   partes
-    .filter(p =>
-      Object.values(p).some(v => v && v.toString().toLowerCase().includes(filtro))
-    )
+    .filter(p => Object.values(p).some(v => v && v.toString().toLowerCase().includes(filtro)))
     .forEach((p, i) => {
       const fila = document.createElement("tr");
       fila.innerHTML = `
@@ -153,9 +182,9 @@ function mostrarResumen() {
         <td>${p.fecha}</td>
         <td>${p.interno}</td>
         <td>${p.final}</td>
-        <td>${p.combustible || "No cargó combustible"}</td>
+        <td>${p.combustible}</td>
         <td>${p.novedades || "-"}</td>
-        <td><button onclick="eliminarParte(${i})">🗑️</button></td>
+        <td><button onclick="eliminarParte('${p.id}')">🗑️</button></td>
       `;
       tablaPartes.appendChild(fila);
     });
@@ -164,16 +193,16 @@ function mostrarResumen() {
 filtroInput.addEventListener("input", mostrarResumen);
 
 // =================== ELIMINAR PARTE ===================
-function eliminarParte(index) {
-  const partes = JSON.parse(localStorage.getItem("partes")) || [];
-  partes.splice(index, 1);
-  localStorage.setItem("partes", JSON.stringify(partes));
+async function eliminarParte(id) {
+  await deleteDoc(doc(db, "partesDiarios", id));
   mostrarResumen();
 }
 
 // =================== EXPORTAR CSV ===================
-btnExportar.addEventListener("click", () => {
-  const partes = JSON.parse(localStorage.getItem("partes")) || [];
+btnExportar.addEventListener("click", async () => {
+  const partesSnap = await getDocs(collection(db, "partesDiarios"));
+  const partes = partesSnap.docs.map(d => d.data());
+
   if (partes.length === 0) return alert("No hay partes para exportar.");
 
   const encabezado = ["Usuario", "Fecha", "Interno", "Final", "Combustible", "Novedades"];
@@ -187,7 +216,8 @@ btnExportar.addEventListener("click", () => {
   a.download = "partes_diarios.csv";
   a.click();
 });
-// =================== PWA SERVICE WORKER ===================
+
+// =================== SERVICE WORKER ===================
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
@@ -196,3 +226,4 @@ if ("serviceWorker" in navigator) {
       .catch(err => console.log("Error al registrar Service Worker:", err));
   });
 }
+
