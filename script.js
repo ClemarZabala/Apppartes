@@ -1,19 +1,14 @@
-// =================== CONFIGURACIÓN DE FIREBASE ===================
+// =================== FIREBASE ===================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
+  getFirestore, collection, addDoc, getDocs, deleteDoc, doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDz-koArBKFUb18f677L6161VqKQ1ZdVvo",
   authDomain: "control-partes.firebaseapp.com",
   projectId: "control-partes",
-  storageBucket: "control-partes.firebasestorage.app",
+  storageBucket: "control-partes.appspot.com", // ✅ corregido
   messagingSenderId: "408084645027",
   appId: "1:408084645027:web:926ecefaba0dc9643aab16"
 };
@@ -21,7 +16,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// =================== DATOS DE USUARIOS ===================
+// =================== USUARIOS ===================
 const usuarios = [
   { nombre: "admin", legajo: "0000" },
   { nombre: "Acevedo Nelson", legajo: "123" },
@@ -30,11 +25,10 @@ const usuarios = [
   { nombre: "Viñas Gabriel", legajo: "126" },
 ];
 
-// =================== DATOS DE INTERNOS ===================
-const internos = [
-  "A-299", "A-316", "C-111", "C-136", "C-157", "C-165", "RC-680", "T-434", "TR-512"
-];
+// =================== INTERNOS ===================
+const internos = ["A-299","A-316","C-111","C-136","C-157","C-165","RC-680","T-434","TR-512"];
 
+// =================== ELEMENTOS ===================
 const loginSection = document.getElementById("login-section");
 const formSection = document.getElementById("form-section");
 const adminSection = document.getElementById("admin-section");
@@ -60,7 +54,6 @@ let usuarioActivo = null;
 btnLogin.addEventListener("click", () => {
   const nombre = usuarioSelect.value;
   const legajo = legajoInput.value.trim();
-
   const usuario = usuarios.find(u => u.nombre === nombre && u.legajo === legajo);
 
   if (!usuario) {
@@ -68,7 +61,6 @@ btnLogin.addEventListener("click", () => {
     return;
   }
 
-  errorLogin.textContent = "";
   usuarioActivo = usuario.nombre;
   localStorage.setItem("usuarioActivo", usuarioActivo);
   loginSection.classList.add("hidden");
@@ -82,7 +74,7 @@ btnLogin.addEventListener("click", () => {
   }
 });
 
-// =================== CARGAR INTERNOS ===================
+// =================== INTERNOS ===================
 internos.forEach(i => {
   const opt = document.createElement("option");
   opt.value = i;
@@ -94,7 +86,7 @@ cargoCombustible.addEventListener("change", () => {
   datosCombustible.classList.toggle("hidden", cargoCombustible.value !== "si");
 });
 
-// =================== GUARDAR PARTE EN FIRESTORE ===================
+// =================== GUARDAR PARTE ===================
 btnGuardar.addEventListener("click", async () => {
   const fecha = document.getElementById("fecha").value;
   const interno = document.getElementById("interno").value;
@@ -117,15 +109,13 @@ btnGuardar.addEventListener("click", async () => {
 
   try {
     await addDoc(collection(db, "partesDiarios"), {
-  usuario: usuarioActivo,
-  fecha: fecha,
-  interno: interno,
-  final: final,
-  combustible: combustible,
-  novedades: novedades,
-  timestamp: new Date()
-});
-
+      usuario: usuarioActivo,
+      fecha,
+      interno,
+      final,
+      combustible,
+      novedades,
+      timestamp: new Date()
     });
 
     msgGuardado.textContent = "Parte guardado correctamente ✅";
@@ -151,7 +141,7 @@ selectInterno.addEventListener("change", async () => {
   const partes = partesSnap.docs.map(d => d.data());
   const ultimos = partes.filter(p => p.interno === interno);
 
-  if (ultimos.length === 0) {
+  if (!ultimos.length) {
     document.getElementById("ultimoParte").classList.add("hidden");
     return;
   }
@@ -168,7 +158,7 @@ selectInterno.addEventListener("change", async () => {
 btnSalir.addEventListener("click", () => location.reload());
 btnSalirAdmin.addEventListener("click", () => location.reload());
 
-// =================== RESUMEN ADMIN ===================
+// =================== ADMIN RESUMEN ===================
 async function mostrarResumen() {
   const partesSnap = await getDocs(collection(db, "partesDiarios"));
   const partes = partesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -177,7 +167,7 @@ async function mostrarResumen() {
 
   partes
     .filter(p => Object.values(p).some(v => v && v.toString().toLowerCase().includes(filtro)))
-    .forEach((p) => {
+    .forEach(p => {
       const fila = document.createElement("tr");
       fila.innerHTML = `
         <td>${p.usuario}</td>
@@ -194,19 +184,18 @@ async function mostrarResumen() {
 
 filtroInput.addEventListener("input", mostrarResumen);
 
-// =================== ELIMINAR PARTE ===================
 async function eliminarParte(id) {
   await deleteDoc(doc(db, "partesDiarios", id));
   mostrarResumen();
 }
-window.eliminarParte = eliminarParte; // 🔹 para que funcione el botón en el HTML
+window.eliminarParte = eliminarParte;
 
 // =================== EXPORTAR CSV ===================
 btnExportar.addEventListener("click", async () => {
   const partesSnap = await getDocs(collection(db, "partesDiarios"));
   const partes = partesSnap.docs.map(d => d.data());
 
-  if (partes.length === 0) return alert("No hay partes para exportar.");
+  if (!partes.length) return alert("No hay partes para exportar.");
 
   const encabezado = ["Usuario", "Fecha", "Interno", "Final", "Combustible", "Novedades"];
   const filas = partes.map(p => [p.usuario, p.fecha, p.interno, p.final, p.combustible, p.novedades]);
@@ -222,12 +211,9 @@ btnExportar.addEventListener("click", async () => {
 
 // =================== SERVICE WORKER ===================
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("service-worker.js")
-      .then(() => console.log("Service Worker registrado ✅"))
-      .catch(err => console.log("Error al registrar Service Worker:", err));
-  });
+  navigator.serviceWorker
+    .register("service-worker.js")
+    .then(() => console.log("✅ Service Worker registrado"))
+    .catch(err => console.error("❌ Error Service Worker:", err));
 }
-
 
