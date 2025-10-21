@@ -110,35 +110,10 @@
   </div>
 
   <script src="script.js"></script>
-  <!-- Agregá esto antes del cierre de </body> en tu index.html -->
-<script type="module">
-  // Importar las funciones necesarias del SDK de Firebase
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-  import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-  import { getStorage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
-  // Configuración de tu aplicación web Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyDz-koArBKFUb18f677L6161VqKQ1ZdVvo",
-    authDomain: "control-partes.firebaseapp.com",
-    projectId: "control-partes",
-    storageBucket: "control-partes.firebasestorage.app",
-    messagingSenderId: "408084645027",
-    appId: "1:408084645027:web:926ecefaba0dc9643aab16"
-  };
-
-  // Inicializar Firebase
-  const app = initializeApp(firebaseConfig);
-
-  // Inicializar servicios
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const storage = getStorage(app);
-
-  console.log("✅ Firebase inicializado correctamente");
 </script>
 
 </body>
 </html>
+
 
