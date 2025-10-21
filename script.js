@@ -118,11 +118,11 @@ btnGuardar.addEventListener("click", async () => {
   try {
     await addDoc(collection(db, "partesDiarios"), {
       usuario: usuarioActivo,
-      fecha,
-      interno,
-      final,
-      combustible,
-      novedades,
+      fecha: Fecha,
+      interno: Interno,
+      final: Final,
+      combustible: Combustible,
+      novedades: Novedades,
       timestamp: new Date()
     });
 
@@ -227,3 +227,4 @@ if ("serviceWorker" in navigator) {
       .catch(err => console.log("Error al registrar Service Worker:", err));
   });
 }
+
