@@ -1,4 +1,6 @@
-// =================== CONFIGURACIÓN DE FIREBASE ===================
+// script.js (reemplazar entero)
+
+// =================== FIREBASE ===================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -8,7 +10,8 @@ import {
   deleteDoc,
   doc,
   query,
-  orderBy
+  orderBy,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -23,7 +26,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// =================== USUARIOS ===================
+// =================== SETUP UI / VARIABLES ===================
 const usuarios = [
   { nombre: "admin", legajo: "0000" },
   { nombre: "Acevedo Nelson", legajo: "123" },
@@ -31,11 +34,8 @@ const usuarios = [
   { nombre: "Rodriguez Gabriel", legajo: "125" },
   { nombre: "Viñas Gabriel", legajo: "126" },
 ];
+const internos = ["A-299","A-316","C-111","C-136","C-157","C-165","RC-680","T-434","TR-512"];
 
-// =================== INTERNOS ===================
-const internos = ["A-299", "A-316", "C-111", "C-136", "C-157", "C-165", "RC-680", "T-434", "TR-512"];
-
-// =================== ELEMENTOS ===================
 const loginSection = document.getElementById("login-section");
 const formSection = document.getElementById("form-section");
 const adminSection = document.getElementById("admin-section");
@@ -56,26 +56,28 @@ const cargoCombustible = document.getElementById("cargoCombustible");
 const datosCombustible = document.getElementById("datosCombustible");
 
 let usuarioActivo = null;
+let adminUnsubscribe = null; // para onSnapshot
+
+// ===== helpers =====
+function showMsg(el, text, color) { el.textContent = text; el.style.color = color || "#000"; }
+function setSavingState(on) {
+  btnGuardar.disabled = on;
+  btnGuardar.textContent = on ? "Guardando..." : "Guardar parte";
+}
 
 // =================== LOGIN ===================
 btnLogin.addEventListener("click", () => {
   const nombre = usuarioSelect.value;
   const legajo = legajoInput.value.trim();
   const usuario = usuarios.find(u => u.nombre === nombre && u.legajo === legajo);
-
-  if (!usuario) {
-    errorLogin.textContent = "Usuario o legajo incorrecto.";
-    return;
-  }
-
+  if (!usuario) { errorLogin.textContent = "Usuario o legajo incorrecto."; return; }
   errorLogin.textContent = "";
   usuarioActivo = usuario.nombre;
   localStorage.setItem("usuarioActivo", usuarioActivo);
   loginSection.classList.add("hidden");
-
   if (usuarioActivo === "admin") {
     adminSection.classList.remove("hidden");
-    mostrarResumen();
+    iniciarListenerAdmin(); // listener en tiempo real
   } else {
     formSection.classList.remove("hidden");
     userActive.textContent = `Usuario: ${usuarioActivo}`;
@@ -85,16 +87,13 @@ btnLogin.addEventListener("click", () => {
 // =================== CARGAR INTERNOS ===================
 internos.forEach(i => {
   const opt = document.createElement("option");
-  opt.value = i;
-  opt.textContent = i;
-  selectInterno.appendChild(opt);
+  opt.value = i; opt.textContent = i; selectInterno.appendChild(opt);
 });
-
 cargoCombustible.addEventListener("change", () => {
   datosCombustible.classList.toggle("hidden", cargoCombustible.value !== "si");
 });
 
-// =================== GUARDAR PARTE ===================
+// =================== GUARDAR PARTE (con debug y bloqueo) ===================
 btnGuardar.addEventListener("click", async () => {
   const fecha = document.getElementById("fecha").value;
   const interno = document.getElementById("interno").value;
@@ -104,112 +103,121 @@ btnGuardar.addEventListener("click", async () => {
   const kmCarga = document.getElementById("kmCarga").value;
   const cargo = cargoCombustible.value;
 
-  if (!fecha || !interno || !final) {
-    msgGuardado.textContent = "Completá todos los campos obligatorios.";
-    msgGuardado.style.color = "#e74c3c";
-    return;
-  }
+  console.log("DEBUG -> intento guardar:", { usuarioActivo, fecha, interno, final, litros, kmCarga, cargo });
+
+  if (!usuarioActivo) { showMsg(msgGuardado, "Iniciá sesión primero.", "#e74c3c"); return; }
+  if (!fecha || !interno || !final) { showMsg(msgGuardado, "Completá fecha, interno y final.", "#e74c3c"); return; }
 
   let combustible = "No cargó combustible";
-  if (cargo === "si" && litros && kmCarga) {
-    combustible = `${litros} L - ${kmCarga} km`;
-  }
+  if (cargo === "si" && litros && kmCarga) combustible = `${litros} L - ${kmCarga} km`;
 
+  const parteObj = {
+    usuario: usuarioActivo,
+    fecha,
+    interno,
+    final,
+    combustible,
+    novedades: novedades || "",
+    timestamp: new Date()
+  };
+
+  setSavingState(true);
   try {
-    await addDoc(collection(db, "partesDiarios"), {
-      usuario: usuarioActivo,
-      fecha,
-      interno,
-      final,
-      combustible,
-      novedades,
-      timestamp: new Date()
-    });
+    const ref = await addDoc(collection(db, "partesDiarios"), parteObj);
+    console.log("DEBUG -> addDoc ok, id:", ref.id);
+    showMsg(msgGuardado, "Parte guardado correctamente ✅", "#27ae60");
 
-    msgGuardado.textContent = "Parte guardado correctamente ✅";
-    msgGuardado.style.color = "#27ae60";
-
+    // limpiar
     document.getElementById("final").value = "";
     document.getElementById("novedades").value = "";
     document.getElementById("litros").value = "";
     document.getElementById("kmCarga").value = "";
     cargoCombustible.value = "no";
     datosCombustible.classList.add("hidden");
-
-    if (usuarioActivo === "admin") mostrarResumen();
-  } catch (error) {
-    console.error("Error al guardar:", error);
-    msgGuardado.textContent = "Error al guardar el parte ❌";
-    msgGuardado.style.color = "#e74c3c";
+  } catch (err) {
+    console.error("DEBUG -> Error addDoc:", err);
+    showMsg(msgGuardado, "Error al guardar el parte ❌ (ver consola)", "#e74c3c");
+  } finally {
+    setSavingState(false);
   }
 });
 
-// =================== MOSTRAR RESUMEN ===================
-async function mostrarResumen() {
-  const q = query(collection(db, "partesDiarios"), orderBy("timestamp", "desc"));
-  const snap = await getDocs(q);
-  const partes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  const filtro = filtroInput.value.toLowerCase();
+// =================== LISTENER ADMIN (onSnapshot) ===================
+function iniciarListenerAdmin() {
+  // si ya hay, cancelar
+  if (adminUnsubscribe) { adminUnsubscribe(); adminUnsubscribe = null; }
 
+  try {
+    const q = query(collection(db, "partesDiarios"), orderBy("timestamp", "desc"));
+    adminUnsubscribe = onSnapshot(q, (snapshot) => {
+      const partes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log("DEBUG -> onSnapshot partes:", partes.length);
+      renderTablaPartes(partes);
+    }, err => {
+      console.error("DEBUG -> onSnapshot error:", err);
+      showMsg(msgGuardado, "Error al escuchar cambios (ver consola)", "#e74c3c");
+    });
+  } catch (err) {
+    console.error("DEBUG -> iniciarListenerAdmin error:", err);
+  }
+}
+
+function renderTablaPartes(partes) {
+  const filtro = filtroInput.value?.toLowerCase() || "";
   tablaPartes.innerHTML = "";
-
   partes
-    .filter(p => Object.values(p).some(v => v && v.toString().toLowerCase().includes(filtro)))
-    .forEach((p) => {
+    .filter(p => {
+      if (!filtro) return true;
+      return Object.values(p).some(v => v && v.toString().toLowerCase().includes(filtro));
+    })
+    .forEach(p => {
       const fila = document.createElement("tr");
       fila.innerHTML = `
-        <td>${p.usuario}</td>
-        <td>${p.fecha}</td>
-        <td>${p.interno}</td>
-        <td>${p.final}</td>
-        <td>${p.combustible}</td>
+        <td>${p.usuario || "-"}</td>
+        <td>${p.fecha || "-"}</td>
+        <td>${p.interno || "-"}</td>
+        <td>${p.final || "-"}</td>
+        <td>${p.combustible || "-"}</td>
         <td>${p.novedades || "-"}</td>
         <td><button onclick="eliminarParte('${p.id}')">🗑️</button></td>
       `;
       tablaPartes.appendChild(fila);
     });
 }
-window.mostrarResumen = mostrarResumen;
-filtroInput.addEventListener("input", mostrarResumen);
+window.mostrarResumen = iniciarListenerAdmin;
 
-// =================== ELIMINAR ===================
+// =================== OTRAS FUNCIONES ===================
+filtroInput.addEventListener("input", () => { /* onSnapshot ya actualiza; esta fuerza re-render con filtro */ iniciarListenerAdmin(); });
+
 async function eliminarParte(id) {
-  await deleteDoc(doc(db, "partesDiarios", id));
-  mostrarResumen();
+  try {
+    await deleteDoc(doc(db, "partesDiarios", id));
+    console.log("DEBUG -> eliminado:", id);
+  } catch (err) {
+    console.error("DEBUG -> error eliminar:", err);
+  }
 }
 window.eliminarParte = eliminarParte;
 
-// =================== EXPORTAR CSV ===================
 btnExportar.addEventListener("click", async () => {
-  const snap = await getDocs(collection(db, "partesDiarios"));
-  const partes = snap.docs.map(d => d.data());
-
-  if (partes.length === 0) return alert("No hay partes para exportar.");
-
-  const encabezado = ["Usuario", "Fecha", "Interno", "Final", "Combustible", "Novedades"];
-  const filas = partes.map(p => [p.usuario, p.fecha, p.interno, p.final, p.combustible, p.novedades]);
-  const csv = [encabezado, ...filas].map(e => e.join(",")).join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "partes_diarios.csv";
-  a.click();
+  try {
+    const snap = await getDocs(collection(db, "partesDiarios"));
+    const partes = snap.docs.map(d => d.data());
+    if (!partes.length) return alert("No hay partes para exportar.");
+    const encabezado = ["Usuario","Fecha","Interno","Final","Combustible","Novedades"];
+    const filas = partes.map(p => [p.usuario,p.fecha,p.interno,p.final,p.combustible,p.novedades]);
+    const csv = [encabezado, ...filas].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "partes_diarios.csv"; a.click();
+  } catch (err) { console.error("DEBUG -> exportar error:", err); }
 });
 
-// =================== SALIR ===================
-btnSalir.addEventListener("click", () => location.reload());
-btnSalirAdmin.addEventListener("click", () => location.reload());
-
-// =================== SERVICE WORKER ===================
+// SERVICE WORKER registro (sin cambios funcionales)
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("service-worker.js")
-      .then(() => console.log("Service Worker registrado ✅"))
-      .catch(err => console.log("Error al registrar Service Worker:", err));
-  });
+  navigator.serviceWorker
+    .register("service-worker.js?v=2")
+    .then(() => console.log("✅ Service Worker registrado"))
+    .catch(err => console.error("❌ Error Service Worker:", err));
 }
-
 
