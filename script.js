@@ -15,7 +15,7 @@ import {
 
 /* ====== Config Firebase ====== */
 const firebaseConfig = {
-  apiKey: "AIzaSyB7eE1ZOWzcVXQTQ9y5suJSFSkFWMZrTuE",
+  apiKey: "AIzaSyB7eE1ZOWzvCXTQQy5suJSFSkFWMZrTuE",
   authDomain: "control-partes-v2.firebaseapp.com",
   projectId: "control-partes-v2",
   storageBucket: "control-partes-v2.firebasestorage.app",
@@ -244,5 +244,6 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Error Service Worker:", err));
 }
+
 
 
