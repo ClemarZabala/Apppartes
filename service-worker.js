@@ -1,16 +1,7 @@
-// ✅ service-worker.js (versión corregida)
-const CACHE_NAME = "control-partes-v3";
-const urlsToCache = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./script.js",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png"
-];
+// service-worker.js (Pegar entero)
+const CACHE_NAME = "control-partes-v4";
+const urlsToCache = ["./","./index.html","./style.css","./script.js?v=5","./manifest.json","./icon-192.png","./icon-512.png"];
 
-// Instalar: guarda archivos básicos
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
@@ -18,27 +9,21 @@ self.addEventListener("install", event => {
   self.skipWaiting();
 });
 
-// Activar: limpia versiones viejas
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
   );
   self.clients.claim();
 });
 
-// Fetch: deja pasar las llamadas a Firestore, solo sirve archivos locales
 self.addEventListener("fetch", event => {
   const url = event.request.url;
-
-  // 🔹 Si la solicitud es a Firestore o Firebase → siempre red
-  if (url.includes("firestore.googleapis.com") || url.includes("firebaseio.com")) {
-    return;
+  // No cachear o interferir con llamadas a Firebase/Firestore:
+  if (url.includes("firestore.googleapis.com") || url.includes("firebase.googleapis.com") || url.includes("gstatic.com/firebasejs")) {
+    return; // dejamos pasar para que la red maneje la petición
   }
-
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    caches.match(event.request).then(res => res || fetch(event.request)).catch(() => caches.match("./index.html"))
   );
 });
 
