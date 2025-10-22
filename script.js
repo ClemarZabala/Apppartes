@@ -18,10 +18,11 @@ const firebaseConfig = {
   apiKey: "AIzaSyB7eE1ZOWzvCXTQQy5suJSFSkFWMZrTuE",
   authDomain: "control-partes-v2.firebaseapp.com",
   projectId: "control-partes-v2",
-  storageBucket: "control-partes-v2.firebasestorage.app",
+  storageBucket: "control-partes-v2.appspot.com",
   messagingSenderId: "947187973810",
   appId: "1:947187973810:web:6b5507c430b5f221173a47"
 };
+
 
 
 const app = initializeApp(firebaseConfig);
@@ -245,6 +246,7 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Error Service Worker:", err));
 }
+
 
 
 
