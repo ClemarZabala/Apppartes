@@ -1,6 +1,6 @@
 // ====== script.js ======
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import {
   getFirestore,
   collection,
@@ -11,22 +11,22 @@ import {
   query,
   orderBy,
   onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 /* ====== Config Firebase ====== */
 const firebaseConfig = {
-  apiKey: "AIzaSyDz-koArBKFUb18f677L6161VqKQ1ZdVvo",
-  authDomain: "control-partes.firebaseapp.com",
-  projectId: "control-partes",
-  storageBucket: "control-partes.appspot.com",
-  messagingSenderId: "408084645027",
-  appId: "1:408084645027:web:926ecefaba0dc9643aab16"
+  apiKey: "AIzaSyB7eE1Z0WczVXlQTQ9y5suJSFSkFWMZrTuE",
+  authDomain: "control-partes-v2.firebaseapp.com",
+  projectId: "control-partes-v2",
+  storageBucket: "control-partes-v2.appspot.com",
+  messagingSenderId: "947187973810",
+  appId: "1:947187973810:web:6b5507c430b5f221173a47"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ====== DOM elements ====== */
+/* ====== Usuarios y datos ====== */
 const usuarios = [
   { nombre: "admin", legajo: "0000" },
   { nombre: "Acevedo Nelson", legajo: "123" },
@@ -34,8 +34,9 @@ const usuarios = [
   { nombre: "Rodriguez Gabriel", legajo: "125" },
   { nombre: "Viñas Gabriel", legajo: "126" },
 ];
-const internos = ["A-299","A-316","C-111","C-136","C-157","C-165","RC-680","T-434","TR-512"];
+const internos = ["A-299", "A-316", "C-111", "C-136", "C-157", "C-165", "RC-680", "T-434", "TR-512"];
 
+/* ====== DOM ====== */
 const loginSection = document.getElementById("login-section");
 const formSection = document.getElementById("form-section");
 const adminSection = document.getElementById("admin-section");
@@ -242,3 +243,4 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Error Service Worker:", err));
 }
+
