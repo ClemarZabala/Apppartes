@@ -141,7 +141,8 @@ btnGuardar.addEventListener("click", async () => {
 
   setSavingState(true);
   try {
-    const ref = await addDoc(collection(db, "partesDiarios"), parteObj);
+  const ref = await addDoc(collection(db, "partesDiarios"), parteObj);
+
     console.log("✅ Parte guardado en Firestore, id:", ref.id);
     showMsg(msgGuardado, "Parte guardado correctamente ✅", "#27ae60");
 
@@ -244,6 +245,7 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Error Service Worker:", err));
 }
+
 
 
 
