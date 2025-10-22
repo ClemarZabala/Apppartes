@@ -15,13 +15,14 @@ import {
 
 /* ====== Config Firebase ====== */
 const firebaseConfig = {
-  apiKey: "AIzaSyB7eE1Z0WczVXlQTQ9y5suJSFSkFWMZrTuE",
+  apiKey: "AIzaSyB7eE1ZOWzcVXQTQ9y5suJSFSkFWMZrTuE",
   authDomain: "control-partes-v2.firebaseapp.com",
   projectId: "control-partes-v2",
-  storageBucket: "control-partes-v2.appspot.com",
+  storageBucket: "control-partes-v2.firebasestorage.app",
   messagingSenderId: "947187973810",
   appId: "1:947187973810:web:6b5507c430b5f221173a47"
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -243,4 +244,5 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("❌ Error Service Worker:", err));
 }
+
 
